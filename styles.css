@@ -1,0 +1,19 @@
+html {
+    background-color: black;
+    color: white;
+    font-family: 'Courier New', monospace;
+}
+
+div {
+    font-size: large;
+}
+
+#winState {
+    font-size: 5em;
+}
+
+canvas {
+    margin: auto;
+    display: block;
+}
+
