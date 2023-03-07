@@ -2,8 +2,8 @@
 var VSHADER_SOURCE =
     'attribute vec3 position;' +
     'uniform mat4 Pmatrix;'+ // projection matrix
-    'uniform mat4 Vmatrix;'+ // view matrix
-    'uniform mat4 Mmatrix;'+ // model matrix
+    'uniform mat4 Vmatrix;'+ // view matrix - fixed camera
+    'uniform mat4 Mmatrix;'+ // model matrix - rotate this to rotate the sphere
     'attribute vec3 color;'+ // the color of the vertex
     'varying vec3 vColor;'+
   'void main() {\n' +
@@ -92,7 +92,7 @@ function init() {
 // Main draw function, clears the canvas and redraws each frame
 function draw(gl, bacteriaAlive) {
     gl.clear(gl.COLOR_BUFFER_BIT);
-    drawDish(gl);
+    drawSphere(gl);
     for (var i = 0; i < bacteriaAlive.length; i++) {
         bacteriaAlive[i].grow();
     }
@@ -129,8 +129,8 @@ function initVertexBuffers(gl, vertexInputs = []) {
     return n;
 }
 
-// Draw the petri dish
-function drawDish(gl) {
+// Draw the Sphere
+function drawSphere(gl) {
     var n = initVertexBuffers(gl, genDiscVertices(0, 0, DISC_RADIUS));
     if (n < 0) {
         console.log('Failed to set the positions of the disc vertices');
