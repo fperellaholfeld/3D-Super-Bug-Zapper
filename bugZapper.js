@@ -1,21 +1,23 @@
-//Vertex Shader Program
 // Vertex shader program
 var VSHADER_SOURCE =
-    'attribute vec4 a_Position;\n' +
-    'attribute vec4 a_color;\n' +
-    'varying vec4 v_color;\n' + // varying variable
-    'void main() {\n' +
-    '  gl_Position = a_Position;\n' +
-    '  v_color = a_color;\n' +  // Pass the data to the fragment shader
-    '}\n';
+    'attribute vec3 position;' +
+    'uniform mat4 Pmatrix;'+ // projection matrix
+    'uniform mat4 Vmatrix;'+ // view matrix
+    'uniform mat4 Mmatrix;'+ // model matrix
+    'attribute vec3 color;'+ // the color of the vertex
+    'varying vec3 vColor;'+
+  'void main() {\n' +
+    'gl_Position = Pmatrix * Vmatrix * Mmatrix * vec4(position, 1.0);\n' +
+    'vColor = color;'+
+  '}\n';
+  
 // Fragment shader program
 var FSHADER_SOURCE =
-    'precision mediump float;\n' + // Precision qualifier (See Chapter 6)
-    //'varying vec4 v_color;\n' +    // Receive the data from the vertex shader
-    'uniform vec4 fragColor;\n' +
-    'void main() {\n' +
-    '  gl_FragColor = fragColor;\n' +
-    '}\n';
+    'precision mediump float;'+
+    'varying vec3 vColor;'+
+  'void main() {\n' +
+  '  gl_FragColor = vec4(vColor, 1.0);\n' +
+  '}\n';
 
 //Radius for main disc
 const DISC_RADIUS = 0.8;
@@ -55,6 +57,7 @@ function init() {
     gl.clearColor(0, 0, 0, 1);
     // Clear <canvas>
     gl.clear(gl.COLOR_BUFFER_BIT);
+
     
     // Begin Frames
     function tick() {
