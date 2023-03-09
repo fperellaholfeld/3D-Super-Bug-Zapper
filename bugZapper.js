@@ -130,7 +130,39 @@ function initVertexBuffers(gl, vertexInputs = []) {
 }
 
 // Draw the Sphere
-function drawSphere(gl) {
+function drawSphere(x0, y0, z0, color, radius, gl) {
+    var sphereDivs = 100; //number of longitudes and latitudes (both = 100)
+    var vertices = [];
+    var colors = [];
+    var indices = [];
+
+    // Iterate through each vertical slice of the sphere with latitude
+    for (let lat = 0; lat < sphereDivs; lat++) { 
+        let theta = lat * (Math.PI/sphereDivs);
+        let sinTheta = Math.sin(theta);
+        let cosTheta = Math.cos(theta);
+        // Iterate through every horizontal segment within the vertical slice with longitude
+        for (let long = 0; long <sphereDivs; long++) {
+            let phi = long * (2* Math.PI/sphereDivs)
+            let sinPhi = Math.sin(phi);
+            let cosPhi = Math.cos(phi);
+            
+            let x = x0 + (radius * sinPhi * cosTheta);
+            let y = y0 + (radius * sinPhi * sinTheta);
+            let z = z0 + (radius * cosPhi);
+
+            vertices.push(x);
+            vertices.push(y);
+            vertices.push(z);
+
+            colors.push(color[0]) // R
+            colors.push(color[1]) // G
+            colors.push(color[2]) // B
+            colors.push(color[3]) // A
+
+        }
+    }
+
     var n = initVertexBuffers(gl, genDiscVertices(0, 0, DISC_RADIUS));
     if (n < 0) {
         console.log('Failed to set the positions of the disc vertices');
