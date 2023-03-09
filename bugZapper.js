@@ -58,6 +58,13 @@ function init() {
     // Clear <canvas>
     gl.clear(gl.COLOR_BUFFER_BIT);
 
+    // Specify the viewing volume - define the projection matrix
+    var proj_matrix = new Matrix4();          
+    proj_matrix.setPerspective(80, canvas.width/canvas.height, 1, 100); //you can change the parameters to get the best view
+    var mo_matrix = [ 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 ]; //model matrix - need to be updated accordingly when the sphere rotates
+    var view_matrix = [ 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 ];
+    view_matrix[14] = view_matrix[14]-6; // view matrix - move camera away from the object
+
     
     // Begin Frames
     function tick() {
@@ -147,21 +154,37 @@ function drawSphere(x0, y0, z0, color, radius, gl) {
             let sinPhi = Math.sin(phi);
             let cosPhi = Math.cos(phi);
             
+            // Calculate position of vertex in relation to origin point of this sphere.
             let x = x0 + (radius * sinPhi * cosTheta);
             let y = y0 + (radius * sinPhi * sinTheta);
             let z = z0 + (radius * cosPhi);
 
-            vertices.push(x);
+            // Push coordinates of currently calculated sphere vertex
+            vertices.push(x); 
             vertices.push(y);
             vertices.push(z);
 
-            colors.push(color[0]) // R
-            colors.push(color[1]) // G
-            colors.push(color[2]) // B
-            colors.push(color[3]) // A
+            // Push color of vertex
+            for (let i = 0; i < 4; i++)
+                colors.push(color[i]); // Set RGBA values from color parameter
+            
+            // Create indices for dividing square segments made by the vertices into triangles
+             let v1 =  lat * (sphereDivs + 1); // top left of square segment
+             let v2 = v1 + sphereDivs + 1; // bottom left of square segment
+            // push triangle 1 of segment
+            indices.push(v1);
+            indices.push(v2);
+            indices.push(v1+1);
+
+            //push triangle 2 of segment
+            indices.push(v2);
+            indices.push(v2+1);
+            indices.push(v1+1);
 
         }
     }
+
+
 
     var n = initVertexBuffers(gl, genDiscVertices(0, 0, DISC_RADIUS));
     if (n < 0) {
