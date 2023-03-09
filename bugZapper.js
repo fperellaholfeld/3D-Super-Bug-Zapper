@@ -64,7 +64,15 @@ function init() {
     var mo_matrix = [ 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 ]; //model matrix - need to be updated accordingly when the sphere rotates
     var view_matrix = [ 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 ];
     view_matrix[14] = view_matrix[14]-6; // view matrix - move camera away from the object
-
+    // Then, pass the projection matrix, view matrix, and model matrix to the vertex shader.
+    // for example:    
+    var _Pmatrix = gl.getUniformLocation(gl.program, "Pmatrix");
+    var _Vmatrix = gl.getUniformLocation(gl.program, "Vmatrix");
+    var _Mmatrix = gl.getUniformLocation(gl.program, "Mmatrix");
+    // Pass the projection matrix to _Pmatrix
+    gl.uniformMatrix4fv(_Pmatrix, false, proj_matrix.elements);
+    gl.uniformMatrix4fv(_Vmatrix, false, view_matrix);
+    gl.uniformMatrix4fv(_Mmatrix, false, mo_matrix);
     
     // Begin Frames
     function tick() {
@@ -112,7 +120,7 @@ function initVertexBuffers(gl, vertexInputs = []) {
         vertexInputs
     );
 
-    var n = vertexInputs.length / 2; // The number of vertices
+    var n = vertexInputs.length / n; // The number of vertices
     //console.log(vertexInputs)
     // Create a buffer object
     var vertexBuffer = gl.createBuffer();
@@ -169,21 +177,22 @@ function drawSphere(x0, y0, z0, color, radius, gl) {
                 colors.push(color[i]); // Set RGBA values from color parameter
             
             // Create indices for dividing square segments made by the vertices into triangles
-             let v1 =  lat * (sphereDivs + 1); // top left of square segment
+             let v1 =  lat * (sphereDivs + 1) + long; // top left of square segment
              let v2 = v1 + sphereDivs + 1; // bottom left of square segment
+            
             // push triangle 1 of segment
-            indices.push(v1);
-            indices.push(v2);
-            indices.push(v1+1);
+             indices.push(v1);
+             indices.push(v2);
+             indices.push(v1+1);
 
             //push triangle 2 of segment
-            indices.push(v2);
-            indices.push(v2+1);
-            indices.push(v1+1);
+             indices.push(v2);
+             indices.push(v2+1);
+             indices.push(v1+1);
 
         }
     }
-
+    
 
 
     var n = initVertexBuffers(gl, genDiscVertices(0, 0, DISC_RADIUS));
