@@ -106,8 +106,9 @@ function init() {
 
 // Main draw function, clears the canvas and redraws each frame
 function draw(gl, bacteriaAlive) {
-    gl.clear(gl.COLOR_BUFFER_BIT);
-    drawSphere(gl);
+    gl.clearColor(0.0,0.0,0.0,0.0);
+	gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+    drawSphere(0, 0, 0, [1, 1, 1, 1], 10, gl);
     for (var i = 0; i < bacteriaAlive.length; i++) {
         bacteriaAlive[i].grow();
     }
@@ -115,24 +116,29 @@ function draw(gl, bacteriaAlive) {
 }
 
 // Initialize the vertex buffers for the program
-function initVertexBuffers(gl, vertexInputs = []) {
-    var vertices = new Float32Array(
-        vertexInputs
-    );
-
-    var n = vertexInputs.length / n; // The number of vertices
-    //console.log(vertexInputs)
+function initVertexBuffers(gl, vertexInputs = [], fragmentColor = [], indexData = []) {
+    let vertices = new Float32Array(vertexInputs);
+    let colors = new Float32Array(fragmentColor);
+    let indices = new Float32Array(indexData)
+    let n = indexData.length;
+    
     // Create a buffer object
     var vertexBuffer = gl.createBuffer();
     if (!vertexBuffer) {
         console.log('Failed to initialize the vertex buffer object');
         return -1;
     }
+    
+    if (!initArrayBuffer(gl, vertices, 3, gl.FLOAT, 'position'))
+        return -1;
+
+    if (!initArrayBuffer(gl, colors, 3, gl.FLOAT, 'color'))
+        return -1;
     // Bind the buffer object to target
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
     // Write date into the buffer object
-    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
-    var a_Position = gl.getAttribLocation(gl.program, 'a_Position');
+    gl.bufferData(gl.ARRAY_BUFFER, indices, gl.STATIC_DRAW);
+    var a_Position = gl.getAttribLocation(gl.program, 'position');
     if (a_Position < 0) {
         console.log('Failed to get the storage location of a_Position');
         return -1;
@@ -143,6 +149,27 @@ function initVertexBuffers(gl, vertexInputs = []) {
     gl.enableVertexAttribArray(a_Position);
     return n;
 }
+function initArrayBuffer(gl, data, num, type, attribute) {
+    var buffer = gl.createBuffer();   // Create a buffer object
+    if (!buffer) {
+      console.log('Failed to create the buffer object');
+      return false;
+    }
+    // Write date into the buffer object
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+    // Assign the buffer object to the attribute variable
+    var a_attribute = gl.getAttribLocation(gl.program, attribute);
+    if (a_attribute < 0) {
+      console.log('Failed to get the storage location of ' + attribute);
+      return false;
+    }
+    gl.vertexAttribPointer(a_attribute, num, type, false, 0, 0);
+    // Enable the assignment of the buffer object to the attribute variable
+    gl.enableVertexAttribArray(a_attribute);
+  
+    return true;
+  }
 
 // Draw the Sphere
 function drawSphere(x0, y0, z0, color, radius, gl) {
@@ -192,18 +219,10 @@ function drawSphere(x0, y0, z0, color, radius, gl) {
 
         }
     }
-    
 
-
-    var n = initVertexBuffers(gl, genDiscVertices(0, 0, DISC_RADIUS));
-    if (n < 0) {
-        console.log('Failed to set the positions of the disc vertices');
-        return;
-    }
-    var fragmentColor = gl.getUniformLocation(gl.program, "fragColor");
-    gl.uniform4f(fragmentColor, 1, 1, 1, 1);
-
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, n);
+    var n = initVertexBuffers(gl, vertices, colors, indices);
+    gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
+    return n;
 }
 
 // Draw a single bacteria
@@ -219,6 +238,7 @@ function drawBacteria(gl, scale, spawnX, spawnY, color) {
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, n);
     return;
 }
+
 
 // Last time that this function was called
 var g_last = Date.now();
