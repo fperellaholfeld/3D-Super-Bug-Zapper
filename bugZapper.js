@@ -33,7 +33,7 @@ var bacteriaAlive;
 var bacteriaAmount;
 
 
-function init() {
+function main() {
     console.log("Initializing Game...")
     // Retrieve <canvas> element
     var canvas = document.getElementById('webgl');
@@ -48,15 +48,6 @@ function init() {
         console.log('Failed to intialize shaders.');
         return;
     }
-
-
-    //generate bacteria
-    bacteriaAlive = generateBacteria(gl);
-    bacteriaAmount = bacteriaAlive.length;
-    // Specify the color for clearing <canvas>
-    gl.clearColor(0, 0, 0, 1);
-    // Clear <canvas>
-    gl.clear(gl.COLOR_BUFFER_BIT);
 
     // Specify the viewing volume - define the projection matrix
     var proj_matrix = new Matrix4();          
@@ -73,6 +64,15 @@ function init() {
     gl.uniformMatrix4fv(_Pmatrix, false, proj_matrix.elements);
     gl.uniformMatrix4fv(_Vmatrix, false, view_matrix);
     gl.uniformMatrix4fv(_Mmatrix, false, mo_matrix);
+
+    //generate bacteria
+    bacteriaAlive = generateBacteria(gl);
+    bacteriaAmount = bacteriaAlive.length;
+    
+    // Enable Depth Test and Clear
+    gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    gl.enable(gl.DEPTH_TEST);
+    gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
     
     // Begin Frames
     function tick() {
@@ -108,7 +108,7 @@ function init() {
 function draw(gl, bacteriaAlive) {
     gl.clearColor(0.0,0.0,0.0,0.0);
 	gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
-    drawSphere(0, 0, 0, [1, 1, 1, 1], 10, gl);
+    drawSphere(0, 0, 0, [1, 0, 0], 50, gl);
     for (var i = 0; i < bacteriaAlive.length; i++) {
         bacteriaAlive[i].grow();
     }
@@ -116,16 +116,16 @@ function draw(gl, bacteriaAlive) {
 }
 
 // Initialize the vertex buffers for the program
-function initVertexBuffers(gl, vertexInputs = [], fragmentColor = [], indexData = []) {
+function initIndexBuffers(gl, vertexInputs = [], fragmentColor = [], indexData = []) {
     let vertices = new Float32Array(vertexInputs);
     let colors = new Float32Array(fragmentColor);
     let indices = new Float32Array(indexData)
     let n = indexData.length;
-    
+
     // Create a buffer object
-    var vertexBuffer = gl.createBuffer();
-    if (!vertexBuffer) {
-        console.log('Failed to initialize the vertex buffer object');
+    var indexBuffer = gl.createBuffer();
+    if (!indexBuffer) {
+        console.log('Failed to initialize the index buffer object');
         return -1;
     }
     
@@ -135,18 +135,9 @@ function initVertexBuffers(gl, vertexInputs = [], fragmentColor = [], indexData 
     if (!initArrayBuffer(gl, colors, 3, gl.FLOAT, 'color'))
         return -1;
     // Bind the buffer object to target
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
     // Write date into the buffer object
-    gl.bufferData(gl.ARRAY_BUFFER, indices, gl.STATIC_DRAW);
-    var a_Position = gl.getAttribLocation(gl.program, 'position');
-    if (a_Position < 0) {
-        console.log('Failed to get the storage location of a_Position');
-        return -1;
-    }
-    // Assign the buffer object to a_Position variable
-    gl.vertexAttribPointer(a_Position, 2, gl.FLOAT, false, 0, 0);
-    // Enable the assignment to a_Position variable
-    gl.enableVertexAttribArray(a_Position);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
     return n;
 }
 function initArrayBuffer(gl, data, num, type, attribute) {
@@ -155,9 +146,10 @@ function initArrayBuffer(gl, data, num, type, attribute) {
       console.log('Failed to create the buffer object');
       return false;
     }
-    // Write date into the buffer object
+    // Write data into the buffer object
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
     gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+    
     // Assign the buffer object to the attribute variable
     var a_attribute = gl.getAttribLocation(gl.program, attribute);
     if (a_attribute < 0) {
@@ -173,26 +165,27 @@ function initArrayBuffer(gl, data, num, type, attribute) {
 
 // Draw the Sphere
 function drawSphere(x0, y0, z0, color, radius, gl) {
-    var sphereDivs = 100; //number of longitudes and latitudes (both = 100)
+    var sphereDivs = 100; //number of longitudes and latitudes
     var vertices = [];
     var colors = [];
     var indices = [];
 
     // Iterate through each vertical slice of the sphere with latitude
     for (let lat = 0; lat < sphereDivs; lat++) { 
-        let theta = lat * (Math.PI/sphereDivs);
-        let sinTheta = Math.sin(theta);
-        let cosTheta = Math.cos(theta);
+        let phi = lat * (Math.PI/sphereDivs);
+        let sinPhi = Math.sin(phi);
+        let cosPhi = Math.cos(phi);
         // Iterate through every horizontal segment within the vertical slice with longitude
-        for (let long = 0; long <sphereDivs; long++) {
-            let phi = long * (2* Math.PI/sphereDivs)
-            let sinPhi = Math.sin(phi);
-            let cosPhi = Math.cos(phi);
+        for (let long = 0; long < sphereDivs; long++) {
+            let theta = long * ((2 * Math.PI)/sphereDivs);
+            let sinTheta = Math.sin(theta);
+            let cosTheta = Math.cos(theta);
+            
             
             // Calculate position of vertex in relation to origin point of this sphere.
-            let x = x0 + (radius * sinPhi * cosTheta);
-            let y = y0 + (radius * sinPhi * sinTheta);
-            let z = z0 + (radius * cosPhi);
+            let x = x0 + (radius * sinPhi * sinTheta);
+            let y = y0 + (radius * cosPhi);
+            let z = z0 + (radius * sinPhi * cosTheta);
 
             // Push coordinates of currently calculated sphere vertex
             vertices.push(x); 
@@ -200,9 +193,8 @@ function drawSphere(x0, y0, z0, color, radius, gl) {
             vertices.push(z);
 
             // Push color of vertex
-            for (let i = 0; i < 4; i++)
+            for (let i = 0; i < 3; i++)
                 colors.push(color[i]); // Set RGBA values from color parameter
-            
             // Create indices for dividing square segments made by the vertices into triangles
              let v1 =  lat * (sphereDivs + 1) + long; // top left of square segment
              let v2 = v1 + sphereDivs + 1; // bottom left of square segment
@@ -219,21 +211,20 @@ function drawSphere(x0, y0, z0, color, radius, gl) {
 
         }
     }
-
-    var n = initVertexBuffers(gl, vertices, colors, indices);
-    gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
+    console.log(vertices)
+    var n = initIndexBuffers(gl, vertices, colors, indices);
+    gl.drawElements(gl.TRIANGLES, n, gl.UNSIGNED_BYTE, 0);
     return n;
 }
 
 // Draw a single bacteria
 function drawBacteria(gl, scale, spawnX, spawnY, color) {
-    var n = initVertexBuffers(gl, genDiscVertices(spawnX, spawnY, scale))
+    var n = initIndexBuffers(gl, genDiscVertices(spawnX, spawnY, scale))
     if (n < 0) {
         console.log('Failed to set the positions of the disc vertices');
         return;
     }
     var fragmentColor = gl.getUniformLocation(gl.program, "fragColor");
-    console.log(color)
     gl.uniform4f(fragmentColor, color[0], color[1], color[2], color[3]);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, n);
     return;
