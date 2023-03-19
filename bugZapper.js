@@ -54,7 +54,7 @@ function main() {
     proj_matrix.setPerspective(80, canvas.width/canvas.height, 1, 100); //you can change the parameters to get the best view
     var mo_matrix = [ 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 ]; //model matrix - need to be updated accordingly when the sphere rotates
     var view_matrix = [ 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 ];
-    view_matrix[14] = view_matrix[14]-6; // view matrix - move camera away from the object
+    view_matrix[14] = view_matrix[14]-30; // view matrix - move camera away from the object
     // Then, pass the projection matrix, view matrix, and model matrix to the vertex shader.
     // for example:    
     var _Pmatrix = gl.getUniformLocation(gl.program, "Pmatrix");
@@ -108,7 +108,7 @@ function main() {
 function draw(gl, bacteriaAlive) {
     gl.clearColor(0.0,0.0,0.0,0.0);
 	gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
-    drawSphere(0, 0, 0, [1, 0, 0], 50, gl);
+    drawSphere(x0=0, y0=0, z0=0, [1, 0, 0], 10, gl);
     for (var i = 0; i < bacteriaAlive.length; i++) {
         bacteriaAlive[i].grow();
     }
@@ -165,50 +165,58 @@ function initArrayBuffer(gl, data, num, type, attribute) {
 
 // Draw the Sphere
 function drawSphere(x0, y0, z0, color, radius, gl) {
-    var sphereDivs = 100; //number of longitudes and latitudes
+    var sphereDivs = 12; //number of longitudes and latitudes
     var vertices = [];
     var colors = [];
     var indices = [];
 
     // Iterate through each vertical slice of the sphere with latitude
     for (let lat = 0; lat < sphereDivs; lat++) { 
-        let phi = lat * (Math.PI/sphereDivs);
-        let sinPhi = Math.sin(phi);
-        let cosPhi = Math.cos(phi);
+        var phi = lat * (Math.PI/sphereDivs);
+        var sinPhi = Math.sin(phi);
+        var cosPhi = Math.cos(phi);
         // Iterate through every horizontal segment within the vertical slice with longitude
         for (let long = 0; long < sphereDivs; long++) {
-            let theta = long * ((2 * Math.PI)/sphereDivs);
-            let sinTheta = Math.sin(theta);
-            let cosTheta = Math.cos(theta);
+            var theta = long * (2 * Math.PI/sphereDivs);
+            var sinTheta = Math.sin(theta);
+            var cosTheta = Math.cos(theta);
             
             
             // Calculate position of vertex in relation to origin point of this sphere.
-            let x = x0 + (radius * sinPhi * sinTheta);
-            let y = y0 + (radius * cosPhi);
-            let z = z0 + (radius * sinPhi * cosTheta);
+            let x = x0 + (radius * cosPhi * cosTheta);
+            let y = y0 + (radius * cosPhi * sinTheta);
+            let z = z0 + (radius * sinPhi);
 
             // Push coordinates of currently calculated sphere vertex
             vertices.push(x); 
             vertices.push(y);
             vertices.push(z);
 
-            // Push color of vertex
-            for (let i = 0; i < 3; i++)
-                colors.push(color[i]); // Set RGBA values from color parameter
-            // Create indices for dividing square segments made by the vertices into triangles
-             let v1 =  lat * (sphereDivs + 1) + long; // top left of square segment
-             let v2 = v1 + sphereDivs + 1; // bottom left of square segment
             
-            // push triangle 1 of segment
-             indices.push(v1);
-             indices.push(v2);
-             indices.push(v1+1);
 
-            //push triangle 2 of segment
-             indices.push(v2);
-             indices.push(v2+1);
-             indices.push(v1+1);
+        }
+    }
+    // Push color of vertex
+    for (let i = 0; i < 3; i++) {
+        colors.push(color[i]); // Set RGBA values from color parameter
+    }
 
+    // Create indices for dividing square segments made by the vertices into triangles
+    for (let lat = 0; lat < sphereDivs; lat++){
+        for (let long = 0; long < sphereDivs; long++) {
+
+            let v1 =  lat * (sphereDivs + 1) + long; // top left of square segment
+            let v2 = v1 + sphereDivs + 1; // bottom left of square segment
+           
+           // push triangle 1 of segment
+            indices.push(v1);
+            indices.push(v2);
+            indices.push(v1+1);
+       
+           //push triangle 2 of segment
+           indices.push(v1+1); 
+           indices.push(v2);
+           indices.push(v2+1);
         }
     }
     console.log(vertices)
