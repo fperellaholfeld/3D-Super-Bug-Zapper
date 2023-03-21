@@ -35,9 +35,6 @@ var bacteriaAmount;
 var x_mouse0 = 0;
 var y_mouse0 = 0;
 
-var x_rot = new Float32Array(16);
-var z_rot = new Float32Array(16)
-
 var drag = false;
 
 function main() {
@@ -56,11 +53,13 @@ function main() {
     return;
   }
   gl.enable(gl.DEPTH_TEST);
+  gl.clearColor(0,0,0,1)
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
   // Specify the viewing volume - define the projection matrix
   var proj_matrix = new Matrix4();
-  proj_matrix.setPerspective(80, canvas.width / canvas.height, 1, 100); //you can change the parameters to get the best view
-  var mo_matrix = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]; //model matrix - need to be updated accordingly when the sphere rotates
+  proj_matrix.setPerspective(90, 1, 0.1, 100); //you can change the parameters to get the best view
+  var mo_matrix = new Matrix4(); //model matrix - need to be updated accordingly when the sphere rotates
   var view_matrix = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
   view_matrix[14] = view_matrix[14] - 60; // view matrix - move camera away from the object
   // Then, pass the projection matrix, view matrix, and model matrix to the vertex shader.
@@ -71,71 +70,71 @@ function main() {
   // Pass the projection matrix to _Pmatrix
   gl.uniformMatrix4fv(_Pmatrix, false, proj_matrix.elements);
   gl.uniformMatrix4fv(_Vmatrix, false, view_matrix);
-  gl.uniformMatrix4fv(_Mmatrix, false, mo_matrix);
+  gl.uniformMatrix4fv(_Mmatrix, false, mo_matrix.elements);
+
+  var rotMatrix = new Matrix4();
 
   //generate bacteria
-  bacteriaAlive = generateBacteria(gl);
-  bacteriaAmount = bacteriaAlive.length;
-
-  // Enable Depth Test and Clear
-  gl.clearColor(0.0, 0.0, 0.0, 1.0);
-
-  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  //bacteriaAlive = generateBacteria(gl);
+  //bacteriaAmount = bacteriaAlive.length;
 
   // Begin Frames
   function tick() {
-    draw(gl, bacteriaAlive);
     // check for clicks
 
     canvas.onmouseup = function (e) {
       drag = false;
-      click(e, canvas);
+      //click(e, canvas);
     };
     canvas.onmouseleave = function (e) {
-        drag = false;
-    }
+      drag = false;
+    };
 
     canvas.onmousedown = function (e) {
-        x_mouse0 = e.clientX;
-        y_mouse0 = e.clientY;
-        drag = true
+      x_mouse0 = e.clientX;
+      y_mouse0 = e.clientY;
+      drag = true;
     };
 
     canvas.onmousemove = function (e) {
       if (drag) {
-        console.log("bruh")
+        console.log("bruh");
         let x = e.clientX;
         let y = e.clientY;
-        let deltaX = (x - x_mouse0)/100;
-        let deltaY = (y - y_mouse0)/100;
+        let deltaX = x - x_mouse0;
+        let deltaY = y - y_mouse0;
         x_mouse0 = x;
         y_mouse0 = y;
-        mo_matrix[12] = mo_matrix[12] + deltaX;
-        mo_matrix[13] = mo_matrix[13] + deltaY;
-        gl.uniformMatrix4fv(_Mmatrix, false, mo_matrix);
+        mo_matrix.multiply(rotMatrix.setRotate(deltaX, 1, 0, 0));
+        mo_matrix.multiply(rotMatrix.setRotate(deltaY, 0, 0, 1));
+        gl.uniformMatrix4fv(_Mmatrix, false, mo_matrix.elements);
       }
     };
+    
+    gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    draw(gl, bacteriaAlive);
 
     // If the player score becomes negative, set it to 0
     PLAYER_SCORE = PLAYER_SCORE < 0 ? 0 : PLAYER_SCORE;
 
-    // update scores
-    document.getElementById("infection").innerHTML =
-      "Infection Level: " + Math.floor(GAME_SCORE);
-    document.getElementById("playerScore").innerHTML =
-      "Your Score: " + PLAYER_SCORE;
-    // Win Conditions
-    if (bacteriaAlive.length === 0 && GAME_SCORE < 100) {
-      document.getElementById("winState").style.color = "green";
-      document.getElementById("winState").innerHTML = "You Win";
-      return; //end game
-    }
-    // Lose conditions
-    else if (GAME_SCORE >= 100) {
-      document.getElementById("winState").style.color = "red";
-      document.getElementById("winState").innerHTML = "You Lose";
-      return; //end game
-    }
+    // // update scores
+    // document.getElementById("infection").innerHTML =
+    //   "Infection Level: " + Math.floor(GAME_SCORE);
+    // document.getElementById("playerScore").innerHTML =
+    //   "Your Score: " + PLAYER_SCORE;
+    // // Win Conditions
+    // if (bacteriaAlive.length === 0 && GAME_SCORE < 100) {
+    //   document.getElementById("winState").style.color = "green";
+    //   document.getElementById("winState").innerHTML = "You Win";
+    //   return; //end game
+    // }
+    // // Lose conditions
+    // else if (GAME_SCORE >= 100) {
+    //   document.getElementById("winState").style.color = "red";
+    //   document.getElementById("winState").innerHTML = "You Lose";
+    //   return; //end game
+    // }
     requestAnimationFrame(tick, canvas);
   }
   tick();
@@ -150,7 +149,7 @@ function draw(gl, bacteriaAlive) {
     (y0 = 0),
     (z0 = 0),
     (color = [1, 0, 1]),
-    (radius = 40),
+    (radius = 30),
     (gl = gl)
   );
   // for (var i = 0; i < bacteriaAlive.length; i++) {
@@ -162,30 +161,29 @@ function draw(gl, bacteriaAlive) {
 // Initialize the vertex buffers for the program
 function initIndexBuffers(
   gl,
-  vertexInputs = [],
-  fragmentColor = [],
-  indexData = []
+  vertexInputs,
+  fragmentColor,
+  indexData
 ) {
   let vertices = new Float32Array(vertexInputs);
   let colors = new Float32Array(fragmentColor);
-  let indices = new Uint8Array(indexData);
-  let n = indexData.length;
+  let indices = new Uint16Array(indexData);
 
   // Create a buffer object
+  // Create a buffer object
   var indexBuffer = gl.createBuffer();
-  if (!indexBuffer) {
-    console.log("Failed to initialize the index buffer object");
-    return -1;
-  }
+  if (!indexBuffer) return -1;
 
+  // Write the vertex coordinates and color to the buffer object
   if (!initArrayBuffer(gl, vertices, 3, gl.FLOAT, "position")) return -1;
 
-  if (!initArrayBuffer(gl, colors, 4, gl.FLOAT, "color")) return -1;
-  // Bind the buffer object to target
+  if (!initArrayBuffer(gl, colors, 3, gl.FLOAT, "color")) return -1;
+
+  // Write the indices to the buffer object
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-  // Write date into the buffer object
   gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
-  return n;
+
+  return indices.length;
 }
 function initArrayBuffer(gl, data, num, type, attribute) {
   var buffer = gl.createBuffer(); // Create a buffer object
@@ -193,10 +191,9 @@ function initArrayBuffer(gl, data, num, type, attribute) {
     console.log("Failed to create the buffer object");
     return false;
   }
-  // Write data into the buffer object
+  // Write date into the buffer object
   gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
   gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
-
   // Assign the buffer object to the attribute variable
   var a_attribute = gl.getAttribLocation(gl.program, attribute);
   if (a_attribute < 0) {
@@ -212,7 +209,7 @@ function initArrayBuffer(gl, data, num, type, attribute) {
 
 // Draw the Sphere
 function drawSphere(x0, y0, z0, color, radius, gl) {
-  var sphereDivs = 50; //number of longitudes and latitudes
+  var sphereDivs = 40; //number of longitudes and latitudes
   var vertices = [];
   var colors = [];
   var indices = [];
@@ -239,9 +236,9 @@ function drawSphere(x0, y0, z0, color, radius, gl) {
       vertices.push(z);
 
       // Push color of vertex
-      for (let i = 0; i < 3; i++) {
-        colors.push(color[i]); // Set RGBA values from color parameter
-      }
+      colors.push((theta + 1) / 10); // Set RGBA values from color parameter
+      colors.push((sinPhi + 1) / 2); // Set RGBA values from color parameter
+      colors.push((cosTheta + 1) / 2); // Set RGBA values from color parameter
 
       // Create indices for dividing square segments made by the vertices into triangles
 
@@ -257,13 +254,12 @@ function drawSphere(x0, y0, z0, color, radius, gl) {
       indices.push(v2);
       indices.push(v2 + 1);
       indices.push(v1 + 1);
+      
     }
   }
-
-  console.log(vertices);
-  var n = initIndexBuffers(gl, vertices, colors, indices);
-  gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_BYTE, 0);
-  return n;
+    initIndexBuffers(gl, vertices, colors, indices)
+  gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
+  return indices.length;
 }
 
 // Draw a single bacteria
