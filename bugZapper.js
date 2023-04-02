@@ -19,10 +19,10 @@ var FSHADER_SOURCE =
   "  gl_FragColor = vec4(vColor, 1.0);\n" +
   "}\n";
 
-//Radius for main disc
-const DISC_RADIUS = 0.8;
+//Radius for main sphere
+const SPHERE_RADIUS = 30;
 //growth rate for bacteria
-const GROWTH_RATE = 0.001;
+const GROWTH_RATE = 0.05;
 // player score
 var PLAYER_SCORE = 0;
 // bacteria score
@@ -75,8 +75,8 @@ function main() {
   var rotMatrix = new Matrix4();
 
   //generate bacteria
-  //bacteriaAlive = generateBacteria(gl);
-  //bacteriaAmount = bacteriaAlive.length;
+  bacteriaAlive = generateBacteria(gl);
+  bacteriaAmount = bacteriaAlive.length;
 
   // Begin Frames
   function tick() {
@@ -98,7 +98,7 @@ function main() {
 
     canvas.onmousemove = function (e) {
       if (drag) {
-        console.log("bruh");
+        
         let x = e.clientX;
         let y = e.clientY;
         let deltaX = x - x_mouse0;
@@ -106,7 +106,7 @@ function main() {
         x_mouse0 = x;
         y_mouse0 = y;
         mo_matrix.multiply(rotMatrix.setRotate(deltaX, 1, 0, 0));
-        mo_matrix.multiply(rotMatrix.setRotate(deltaY, 0, 0, 1));
+        mo_matrix.multiply(rotMatrix.setRotate(deltaY, 0, 1, 0));
         gl.uniformMatrix4fv(_Mmatrix, false, mo_matrix.elements);
       }
     };
@@ -118,23 +118,23 @@ function main() {
     // If the player score becomes negative, set it to 0
     PLAYER_SCORE = PLAYER_SCORE < 0 ? 0 : PLAYER_SCORE;
 
-    // // update scores
-    // document.getElementById("infection").innerHTML =
-    //   "Infection Level: " + Math.floor(GAME_SCORE);
-    // document.getElementById("playerScore").innerHTML =
-    //   "Your Score: " + PLAYER_SCORE;
-    // // Win Conditions
-    // if (bacteriaAlive.length === 0 && GAME_SCORE < 100) {
-    //   document.getElementById("winState").style.color = "green";
-    //   document.getElementById("winState").innerHTML = "You Win";
-    //   return; //end game
-    // }
-    // // Lose conditions
-    // else if (GAME_SCORE >= 100) {
-    //   document.getElementById("winState").style.color = "red";
-    //   document.getElementById("winState").innerHTML = "You Lose";
-    //   return; //end game
-    // }
+    // update scores
+    document.getElementById("infection").innerHTML =
+      "Infection Level: " + Math.floor(GAME_SCORE);
+    document.getElementById("playerScore").innerHTML =
+      "Your Score: " + PLAYER_SCORE;
+    // Win Conditions
+    if (bacteriaAlive.length === 0 && GAME_SCORE < 100) {
+      document.getElementById("winState").style.color = "green";
+      document.getElementById("winState").innerHTML = "You Win";
+      return; //end game
+    }
+    // Lose conditions
+    else if (GAME_SCORE >= 100) {
+      document.getElementById("winState").style.color = "red";
+      document.getElementById("winState").innerHTML = "You Lose";
+      return; //end game
+    }
     requestAnimationFrame(tick, canvas);
   }
   tick();
@@ -149,12 +149,12 @@ function draw(gl, bacteriaAlive) {
     (y0 = 0),
     (z0 = 0),
     (color = [1, 0, 1]),
-    (radius = 30),
-    (gl = gl)
+    SPHERE_RADIUS,
+    gl
   );
-  // for (var i = 0; i < bacteriaAlive.length; i++) {
-  //     bacteriaAlive[i].grow();
-  // }
+  for (const bacteria of bacteriaAlive) {
+      bacteria.grow();
+  }
   return 1;
 }
 
@@ -263,16 +263,61 @@ function drawSphere(x0, y0, z0, color, radius, gl) {
 }
 
 // Draw a single bacteria
-function drawBacteria(gl, scale, spawnX, spawnY, color) {
-  var n = initIndexBuffers(gl, genDiscVertices(spawnX, spawnY, scale));
-  if (n < 0) {
-    console.log("Failed to set the positions of the disc vertices");
-    return;
-  }
-  var fragmentColor = gl.getUniformLocation(gl.program, "fragColor");
-  gl.uniform4f(fragmentColor, color[0], color[1], color[2], color[3]);
-  gl.drawArrays(gl.TRIANGLE_STRIP, 0, n);
-  return;
+function drawBacteria(x0, y0, z0, color, radius, gl) {
+  var sphereDivs = 40; //number of longitudes and latitudes
+  var vertices = [];
+  var colors = [];
+  var indices = [];
+
+  // Iterate through each vertical slice of the sphere with latitude
+  for (let lat = 0; lat <= sphereDivs; lat++) {
+    var phi = lat * (Math.PI / sphereDivs);
+    var sinPhi = Math.sin(phi);
+    var cosPhi = Math.cos(phi);
+    // Iterate through every horizontal segment within the vertical slice with longitude
+    for (let long = 0; long <= sphereDivs; long++) {
+      var theta = long * 2 * (Math.PI / sphereDivs);
+      var sinTheta = Math.sin(theta);
+      var cosTheta = Math.cos(theta);
+
+      // Calculate position of vertex in relation to origin point of this sphere.
+      let x = x0 + radius/(1+((90-theta)/180 + (90-phi)/180))*sinPhi*cosTheta;
+      let y = y0 + radius/(1 + (90 - phi)/90) * cosPhi;
+      let z = z0 + radius/(1+((90-phi)/180 + (90-theta)/180))*sinPhi*sinTheta;
+
+      let dist = Math.sqrt((x-0)**2 + (y-0)**2 + (z-0)**2);
+      if (Math.abs(dist - SPHERE_RADIUS) < radius) {
+        // Push coordinates of currently calculated vertex
+        vertices.push(x);
+        vertices.push(y);
+        vertices.push(z);
+
+        // Push color of vertex
+        colors.push(color[0]);
+        colors.push(color[1]);
+        colors.push(color[2]);
+
+        // Create indices for dividing square segments made by the vertices into triangles
+        let v1 = vertices.length/3 - 1; // top left of square segment
+        let v2 = v1 + 1; // top right of square segment
+        let v3 = v1 + sphereDivs + 1; // bottom left of square segment
+        let v4 = v3 + 1; // bottom right of square segment
+
+        // push triangle 1 of segment
+        indices.push(v1);
+        indices.push(v3);
+        indices.push(v2);
+
+        // push triangle 2 of segment
+        indices.push(v2);
+        indices.push(v3);
+        indices.push(v4);
+      
+    }
+  }}
+    initIndexBuffers(gl, vertices, colors, indices)
+  gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
+  return indices.length;
 }
 
 // Last time that this function was called
@@ -289,29 +334,13 @@ function animate(size) {
 
 // Generate a list of between 2 and 10 Bacteria
 function generateBacteria(gl) {
-  var bacteriaList = [];
-  var spawnAmount = Math.floor(Math.random() * 10) + 2;
+  let bacteriaList = [];
+  let spawnAmount = Math.floor(Math.random() * 10) + 2;
   for (let i = 0; i < spawnAmount; i++) {
     //generarate random radian
     bacteriaList.push(new Bacteria(gl));
   }
   return bacteriaList;
-}
-
-// Generate vertices for the disc being drawn (either dish or bacteria)
-function genDiscVertices(x, y, radius) {
-  console.log("generating disc vertices...");
-  var vertices = [];
-  for (let degrees = 0; degrees <= 360; degrees++) {
-    let rads = degrees * (Math.PI / 180);
-    //push outer
-    vertices.push(radius * Math.cos(rads) + x);
-    vertices.push(radius * Math.sin(rads) + y);
-    //push center
-    vertices.push(x);
-    vertices.push(y);
-  }
-  return vertices;
 }
 
 // get distance between both points with BC = √(|bacteriaX-clickX|^2 + |bacteriaY-clickY|^2)
@@ -356,9 +385,9 @@ class Bacteria {
     this.gl = gl;
     this.alive = true;
     this.color = this.generateColor();
-    console.log(this.colorVertices);
     this.position = this.genSpawnPoint();
     this.radius = 0;
+    console.log(this.position)
   }
 
   // Generate the color of the bacteria and its color vertices
@@ -368,26 +397,30 @@ class Bacteria {
     let R = Math.random() * 0.9;
     let G = Math.random() * 0.9;
     let B = Math.random() * 0.9;
-    colors = [R, G, B, 1];
+    colors = [R, G, B];
     return colors;
   }
 
-  // set the spawn location along the dish for the bacteria
+  // set the spawn location along the surface of the sphere for the bacteria
   genSpawnPoint() {
     let spawn = [];
-    //generarate random radian
-    let rad = (Math.floor(Math.random() * 360) + 1) * (Math.PI / 180);
-    //generate x value
-    spawn.push(Math.sin(rad).toFixed(2) * DISC_RADIUS);
-    //generate y value
-    spawn.push(Math.cos(rad).toFixed(2) * DISC_RADIUS);
+    let theta = Math.random()*Math.PI;
+    let phi = Math.random()*Math.PI*2;
+    // Generate x, y, z values along the surface
+    let x = SPHERE_RADIUS*Math.cos(phi)*Math.sin(theta);
+    let y = SPHERE_RADIUS*Math.cos(theta);
+    let z = SPHERE_RADIUS*Math.sin(phi)*Math.sin(theta);
+    // Push to position array
+    spawn.push(x);
+    spawn.push(y);
+    spawn.push(z);
     return spawn;
   }
 
   // increase the size of the bacteria as long as it is still alive, then draw it at its new size
   grow() {
     if (this.alive) {
-      if (this.radius > 0.5) {
+      if (this.radius > 40) {
         GAME_SCORE += 50;
         console.log(GAME_SCORE);
         PLAYER_SCORE -= 20;
@@ -395,18 +428,19 @@ class Bacteria {
       } else this.radius += GROWTH_RATE;
 
       drawBacteria(
-        this.gl,
-        this.radius,
         this.position[0],
         this.position[1],
-        this.color
+        this.position[2],
+        this.color,
+        this.radius,
+        this.gl
       );
     }
   }
 
   // Destroys the bacteria
   kill(id) {
-    this.position = [0, 0];
+    this.position = [0, 0, 0];
     this.radius = 0;
     this.alive = false;
     // remove from the list of live bacteria
