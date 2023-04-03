@@ -210,19 +210,22 @@ function initArrayBuffer(gl, data, num, type, attribute) {
 
 // Draw the Sphere
 function drawSphere(x0, y0, z0, color, radius, gl, isBacteria) {
-  let sphereDivs = 40; //number of longitudes and latitudes
+  // generate number of longitudes and latitudes
+  // less divisions for bacteria (optimization purposes)
+  let sphereDivs = isBacteria ? 20 : 40;
   let vertices = [];
   let colors = [];
   let indices = [];
+  let piDivs = (Math.PI / sphereDivs)
 
   // Iterate through each vertical slice of the sphere with latitude
   for (let lat = 0; lat <= sphereDivs; lat++) {
-    let phi = lat * (Math.PI / sphereDivs);
+    let phi = lat * piDivs;
     let sinPhi = Math.sin(phi);
     let cosPhi = Math.cos(phi);
     // Iterate through every horizontal segment within the vertical slice with longitude
     for (let long = 0; long <= sphereDivs; long++) {
-      let theta = long * 2 * (Math.PI / sphereDivs);
+      let theta = long * 2 * piDivs;
       let sinTheta = Math.sin(theta);
       let cosTheta = Math.cos(theta);
 
@@ -293,14 +296,6 @@ function generateBacteria(gl) {
   return bacteriaList;
 }
 
-// get distance between both points with BC = √(|bacteriaX-clickX|^2 + |bacteriaY-clickY|^2)
-function pointDistance(clickX, clickY, bacteriaX, bacteriaY) {
-  return Math.sqrt(
-    Math.pow(Math.abs(bacteriaX - clickX), 2) 
-    + Math.pow(Math.abs(bacteriaY - clickY), 2)
-  );
-}
-
 // Registers a click and checks to see if a bacteria has been clicked on
 function click(e, canvas, gl) {
   const rect = canvas.getBoundingClientRect();
@@ -308,12 +303,9 @@ function click(e, canvas, gl) {
   let y = rect.bottom-e.clientY;
   const pixels = new Uint8Array(4);
   gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
-  console.log(pixels)
   
   for (let i =0; i< bacteriaAlive.length; i++) {
     // if a bacteria was clicked on, destroy it and increase the player score
-    console.log(bacteriaAlive[i].color[0])
-    console.log((pixels[0]/254).toFixed(2));
     if (
       bacteriaAlive[i].color[0] == (pixels[0]/254).toFixed(2) 
       && bacteriaAlive[i].color[1] == (pixels[1]/254).toFixed(2)
@@ -334,7 +326,6 @@ class Bacteria {
     this.color = this.generateColor();
     this.position = this.genSpawnPoint();
     this.radius = 0;
-    console.log(this.position)
   }
 
   // Generate the color of the bacteria and its color vertices
