@@ -1,5 +1,5 @@
 // Vertex shader program
-var VSHADER_SOURCE =
+let VSHADER_SOURCE =
   "attribute vec3 position;" +
   "uniform mat4 Pmatrix;" + // projection matrix
   "uniform mat4 Vmatrix;" + // view matrix - fixed camera
@@ -12,7 +12,7 @@ var VSHADER_SOURCE =
   "}\n";
 
 // Fragment shader program
-var FSHADER_SOURCE =
+let FSHADER_SOURCE =
   "precision mediump float;" +
   "varying vec3 vColor;" +
   "void main() {\n" +
@@ -24,26 +24,26 @@ const SPHERE_RADIUS = 30;
 //growth rate for bacteria
 const GROWTH_RATE = 0.01;
 // player score
-var PLAYER_SCORE = 0;
+let PLAYER_SCORE = 0;
 // bacteria score
-var GAME_SCORE = 0;
+let GAME_SCORE = 0;
 // declare live bacteria buffer
-var bacteriaAlive;
+let bacteriaAlive;
 // number of bacteria originally generated
-var bacteriaAmount;
+let bacteriaAmount;
 
-var x_mouse0 = 0;
-var y_mouse0 = 0;
+let x_mouse0 = 0;
+let y_mouse0 = 0;
 
-var drag = false;
+let drag = false;
 
 
 function main() {
   console.log("Initializing Game...");
   // Retrieve <canvas> element
-  var canvas = document.getElementById("webgl");
+  let canvas = document.getElementById("webgl");
   // Get the rendering context for WebGL
-  var gl = canvas.getContext("webgl", {preserveDrawingBuffer: true});
+  let gl = canvas.getContext("webgl", {preserveDrawingBuffer: true});
   if (!gl) {
     console.log("Failed to get the rendering context for WebGL");
     return;
@@ -59,22 +59,22 @@ function main() {
 
 
   // Specify the viewing volume - define the projection matrix
-  var proj_matrix = new Matrix4();
+  let proj_matrix = new Matrix4();
   proj_matrix.setPerspective(90, 1, 0.1, 100); //you can change the parameters to get the best view
-  var mo_matrix = new Matrix4(); //model matrix - need to be updated accordingly when the sphere rotates
-  var view_matrix = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+  let mo_matrix = new Matrix4(); //model matrix - need to be updated accordingly when the sphere rotates
+  let view_matrix = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
   view_matrix[14] = view_matrix[14] - 60; // view matrix - move camera away from the object
   // Then, pass the projection matrix, view matrix, and model matrix to the vertex shader.
   // for example:
-  var _Pmatrix = gl.getUniformLocation(gl.program, "Pmatrix");
-  var _Vmatrix = gl.getUniformLocation(gl.program, "Vmatrix");
-  var _Mmatrix = gl.getUniformLocation(gl.program, "Mmatrix");
+  let _Pmatrix = gl.getUniformLocation(gl.program, "Pmatrix");
+  let _Vmatrix = gl.getUniformLocation(gl.program, "Vmatrix");
+  let _Mmatrix = gl.getUniformLocation(gl.program, "Mmatrix");
   // Pass the projection matrix to _Pmatrix
   gl.uniformMatrix4fv(_Pmatrix, false, proj_matrix.elements);
   gl.uniformMatrix4fv(_Vmatrix, false, view_matrix);
   gl.uniformMatrix4fv(_Mmatrix, false, mo_matrix.elements);
 
-  var rotMatrix = new Matrix4();
+  let rotMatrix = new Matrix4();
 
   //generate bacteria
   bacteriaAlive = generateBacteria(gl);
@@ -150,7 +150,8 @@ function draw(gl, bacteriaAlive) {
     (z0 = 0),
     (color = [1, 1, 1]),
     SPHERE_RADIUS,
-    gl
+    gl,
+    false
   );
   for (const bacteria of bacteriaAlive) {
       bacteria.grow();
@@ -171,7 +172,7 @@ function initIndexBuffers(
 
   // Create a buffer object
   // Create a buffer object
-  var indexBuffer = gl.createBuffer();
+  let indexBuffer = gl.createBuffer();
   if (!indexBuffer) return -1;
 
   // Write the vertex coordinates and color to the buffer object
@@ -186,7 +187,7 @@ function initIndexBuffers(
   return indices.length;
 }
 function initArrayBuffer(gl, data, num, type, attribute) {
-  var buffer = gl.createBuffer(); // Create a buffer object
+  let buffer = gl.createBuffer(); // Create a buffer object
   if (!buffer) {
     console.log("Failed to create the buffer object");
     return false;
@@ -195,7 +196,7 @@ function initArrayBuffer(gl, data, num, type, attribute) {
   gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
   gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
   // Assign the buffer object to the attribute variable
-  var a_attribute = gl.getAttribLocation(gl.program, attribute);
+  let a_attribute = gl.getAttribLocation(gl.program, attribute);
   if (a_attribute < 0) {
     console.log("Failed to get the storage location of " + attribute);
     return false;
@@ -208,22 +209,22 @@ function initArrayBuffer(gl, data, num, type, attribute) {
 }
 
 // Draw the Sphere
-function drawSphere(x0, y0, z0, color, radius, gl) {
-  var sphereDivs = 40; //number of longitudes and latitudes
-  var vertices = [];
-  var colors = [];
-  var indices = [];
+function drawSphere(x0, y0, z0, color, radius, gl, isBacteria) {
+  let sphereDivs = 40; //number of longitudes and latitudes
+  let vertices = [];
+  let colors = [];
+  let indices = [];
 
   // Iterate through each vertical slice of the sphere with latitude
   for (let lat = 0; lat <= sphereDivs; lat++) {
-    var phi = lat * (Math.PI / sphereDivs);
-    var sinPhi = Math.sin(phi);
-    var cosPhi = Math.cos(phi);
+    let phi = lat * (Math.PI / sphereDivs);
+    let sinPhi = Math.sin(phi);
+    let cosPhi = Math.cos(phi);
     // Iterate through every horizontal segment within the vertical slice with longitude
     for (let long = 0; long <= sphereDivs; long++) {
-      var theta = long * 2 * (Math.PI / sphereDivs);
-      var sinTheta = Math.sin(theta);
-      var cosTheta = Math.cos(theta);
+      let theta = long * 2 * (Math.PI / sphereDivs);
+      let sinTheta = Math.sin(theta);
+      let cosTheta = Math.cos(theta);
 
       // Calculate position of vertex in relation to origin point of this sphere.
       let x = x0 + radius * sinPhi * sinTheta;
@@ -236,11 +237,7 @@ function drawSphere(x0, y0, z0, color, radius, gl) {
       vertices.push(z);
 
       // Push color of vertex
-      if (lat % 4 ==0) {
-        colors.push(0);
-        colors.push(0);
-        colors.push(0);
-      } else if (long % 4 ==0) {
+      if (!isBacteria && (lat % 4 == 0 || long % 4 ==0)) {
         colors.push(0);
         colors.push(0);
         colors.push(0);
@@ -249,9 +246,6 @@ function drawSphere(x0, y0, z0, color, radius, gl) {
         colors.push(color[1])
         colors.push(color[2])
       }
-      // colors.push((theta + 1) / 10); // Set RGBA values from color parameter
-      // colors.push((sinPhi + 1) / 2); // Set RGBA values from color parameter
-      // colors.push((cosTheta + 1) / 2); // Set RGBA values from color parameter
 
       // Create indices for dividing square segments made by the vertices into triangles
 
@@ -275,69 +269,16 @@ function drawSphere(x0, y0, z0, color, radius, gl) {
   return indices.length;
 }
 
-// Draw a single bacteria
-function drawBacteria(x0, y0, z0, color, radius, gl) {
-  var sphereDivs = 40; //number of longitudes and latitudes
-  var vertices = [];
-  var colors = [];
-  var indices = [];
-
-  // Iterate through each vertical slice of the sphere with latitude
-  for (let lat = 0; lat <= sphereDivs; lat++) {
-    var phi = lat * (Math.PI / sphereDivs);
-    var sinPhi = Math.sin(phi);
-    var cosPhi = Math.cos(phi);
-    // Iterate through every horizontal segment within the vertical slice with longitude
-    for (let long = 0; long <= sphereDivs; long++) {
-      var theta = long * 2 * Math.PI / sphereDivs;
-      var sinTheta = Math.sin(theta);
-      var cosTheta = Math.cos(theta);
-
-      // Calculate position of vertex in relation to origin point of this sphere.
-      let x = x0 + (radius/(1+((90-phi)/180 + (90-theta)/180)))*sinPhi*cosTheta;
-      let y = y0 + (radius/(1 + (90 - phi)/90)) * cosPhi;
-      let z = z0 + (radius/(1+((90-phi)/180 + (90-theta)/180)))*sinPhi*sinTheta;
-
-        // Push coordinates of currently calculated vertex
-        vertices.push(x);
-        vertices.push(y);
-        vertices.push(z);
-
-        // Push color of vertex
-        colors.push(color[0]);
-        colors.push(color[1]);
-        colors.push(color[2]);
-
-        // Create indices for dividing square segments made by the vertices into triangles
-
-      let v1 = lat * (sphereDivs + 1) + long; // top left of square segment
-      let v2 = v1 + sphereDivs + 1; // bottom left of square segment
-
-      // push triangle 1 of segment
-      indices.push(v1);
-      indices.push(v2);
-      indices.push(v1 + 1);
-
-      //push triangle 2 of segment
-      indices.push(v2);
-      indices.push(v2 + 1);
-      indices.push(v1 + 1);
-        
-  }}
-    initIndexBuffers(gl, vertices, colors, indices)
-  gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
-  return indices.length;
-}
 
 // Last time that this function was called
-var g_last = Date.now();
+let g_last = Date.now();
 function animate(size) {
   // Calculate the elapsed time
   let now = Date.now();
-  var elapsed = Date.now() - g_last;
+  let elapsed = Date.now() - g_last;
   g_last = now;
   // Update the current size (adjusted by the elapsed time)
-  var newSize = size + (GROWTH_RATE * elapsed) / 1000.0;
+  let newSize = size + (GROWTH_RATE * elapsed) / 1000.0;
   return newSize;
 }
 
@@ -433,13 +374,14 @@ class Bacteria {
         this.kill(bacteriaAlive.indexOf(this));
       } else this.radius += GROWTH_RATE;
 
-      drawBacteria(
+      drawSphere(
         this.position[0],
         this.position[1],
         this.position[2],
         this.color,
         this.radius,
-        this.gl
+        this.gl,
+        true
       );
     }
   }
