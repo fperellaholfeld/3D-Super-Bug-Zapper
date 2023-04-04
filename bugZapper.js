@@ -22,7 +22,7 @@ let FSHADER_SOURCE =
 //Radius for main sphere
 const SPHERE_RADIUS = 30;
 //growth rate for bacteria
-const GROWTH_RATE = 0.01;
+const GROWTH_RATE = 0.2;
 // player score
 let PLAYER_SCORE = 0;
 // bacteria score
@@ -150,7 +150,7 @@ function main() {
 function draw(gl, bacteriaAlive) {
   gl.clearColor(0.0, 0.0, 0.0, 0.0);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-  drawSphere(0, 0, 0, [1, 1, 1], SPHERE_RADIUS, gl, false, 180);
+  drawSphere(0, 0, 0, [1, 1, 1], SPHERE_RADIUS, gl, false);
   for (const bacteria of bacteriaAlive) {
     bacteria.grow();
   }
@@ -202,7 +202,7 @@ function initArrayBuffer(gl, data, num, type, attribute) {
 }
 
 // Draw the Sphere
-function drawSphere(x0, y0, z0, color, radius, gl, isBacteria, arcDegs) {
+function drawSphere(x0, y0, z0, color, radius, gl, isBacteria, arcDegs=360, rotMatrix) {
   // generate number of longitudes and latitudes
   // less divisions for bacteria (optimization purposes)
   let sphereDivs = isBacteria ? 20 : 40;
@@ -211,7 +211,6 @@ function drawSphere(x0, y0, z0, color, radius, gl, isBacteria, arcDegs) {
   let indices = [];
   let piDivs = Math.PI / sphereDivs;
   let arcHeight = arcDegs*(sphereDivs/360);
-  console.log(arcHeight);
 
   // Iterate through each vertical slice of the sphere with latitude
   for (let lat = 0; lat <= sphereDivs; lat++) {
@@ -230,9 +229,18 @@ function drawSphere(x0, y0, z0, color, radius, gl, isBacteria, arcDegs) {
       let z = z0 + radius * sinPhi * cosTheta;
 
       // Push coordinates of currently calculated sphere vertex
-      vertices.push(x);
-      vertices.push(y);
-      vertices.push(z);
+      if (isBacteria) {
+       let _rotatedVertices =  function(vertex, rot) {
+        return rot.multiplyVector4(vertex);
+       }(new Vector4([x, y, z, 1]), rotMatrix);
+       vertices.push(_rotatedVertices[0]);
+       vertices.push(_rotatedVertices[1]);
+       vertices.push(_rotatedVertices[2]);
+      } else {
+        vertices.push(x);
+        vertices.push(y);
+        vertices.push(z);
+      }
 
       // Push color of vertex
       if (!isBacteria && (lat % 6 == 0 || long % 6 == 0)) {
@@ -269,6 +277,7 @@ function drawSphere(x0, y0, z0, color, radius, gl, isBacteria, arcDegs) {
   gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
   return indices.length;
 }
+
 
 // Last time that this function was called
 let g_last = Date.now();
@@ -322,7 +331,9 @@ class Bacteria {
     this.alive = true;
     this.color = this.generateColor();
     this.position = this.genSpawnPoint();
-    this.radius = 0;
+    this.radius = SPHERE_RADIUS;
+    this.arc = 2
+    this.rotMatrix = this.rotateYAxis(this.position[0],this.position[1],this.position[2]);
   }
 
   // Generate the color of the bacteria and its color vertices
@@ -336,15 +347,41 @@ class Bacteria {
     return colors;
   }
 
+  rotateYAxis(x, y, z) {
+    let rotMat = new Matrix4();
+    console.log(rotMat)
+    console.log(x+' '+y+' '+z+' ')
+    let tran = new Matrix4().setTranslate(x, y, z);
+    rotMat.multiply(tran);
+    console.log(rotMat)
+    let rotX = new Matrix4().setRotate(90, 1, 0, 0);
+    rotMat.multiply(rotX);
+    console.log(rotMat)
+    let y0Vec = new Vector3([0, 1, 0]);
+    let newYVec = new Vector3([rotMat.elements[4],rotMat.elements[5], rotMat.elements[6]]);
+    let axisTheta = this.angleBetween(y0Vec, newYVec)*180/Math.PI;
+    let rotZ = new Matrix4().setRotate(axisTheta, 0, 0, 1);
+    rotMat.multiply(rotZ);
+    return rotMat;
+  }
+
+  angleBetween(origin, spawn) {
+    return (1/Math.cos(dot(origin, spawn)/(this.mag(origin)*this.mag(spawn))))*180/Math.PI;
+  }
+
+  mag(vector) {
+    return Math.sqrt(vector[0]**2+vector[1]**2+vector[2]**2);
+  }
+
   // set the spawn location along the surface of the sphere for the bacteria
   genSpawnPoint() {
     let spawn = [];
     this.theta = Math.random() * Math.PI;
     this.phi = Math.random() * Math.PI * 2;
     // Generate x, y, z values a bit below the surface
-    let x = (SPHERE_RADIUS - 1) * Math.cos(this.phi) * Math.sin(this.theta);
-    let y = (SPHERE_RADIUS - 1) * Math.cos(this.theta);
-    let z = (SPHERE_RADIUS - 1) * Math.sin(this.phi) * Math.sin(this.theta);
+    let x = (SPHERE_RADIUS + 1) * Math.cos(this.phi) * Math.sin(this.theta);
+    let y = (SPHERE_RADIUS + 1) * Math.cos(this.theta);
+    let z = (SPHERE_RADIUS + 1) * Math.sin(this.phi) * Math.sin(this.theta);
     // Push to position array
     spawn.push(x);
     spawn.push(y);
@@ -355,12 +392,12 @@ class Bacteria {
   // increase the size of the bacteria as long as it is still alive, then draw it at its new size
   grow() {
     if (this.alive) {
-      if (this.radius > 10) {
+      if (this.arc > 180) {
         GAME_SCORE += 50;
         console.log(GAME_SCORE);
         PLAYER_SCORE -= 20;
         this.kill(bacteriaAlive.indexOf(this));
-      } else this.radius += GROWTH_RATE;
+      } else this.arc += GROWTH_RATE;
 
       drawSphere(
         this.position[0],
@@ -369,7 +406,9 @@ class Bacteria {
         this.color,
         this.radius,
         this.gl,
-        true
+        true,
+        this.arc,
+        this.rotMatrix
       );
     }
   }
