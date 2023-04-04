@@ -150,7 +150,7 @@ function main() {
 function draw(gl, bacteriaAlive) {
   gl.clearColor(0.0, 0.0, 0.0, 0.0);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-  drawSphere(0, 0, 0, [1, 1, 1], SPHERE_RADIUS, gl, false);
+  drawSphere(0, 0, 0, [1, 1, 1], SPHERE_RADIUS, gl, false, 180);
   for (const bacteria of bacteriaAlive) {
     bacteria.grow();
   }
@@ -202,7 +202,7 @@ function initArrayBuffer(gl, data, num, type, attribute) {
 }
 
 // Draw the Sphere
-function drawSphere(x0, y0, z0, color, radius, gl, isBacteria) {
+function drawSphere(x0, y0, z0, color, radius, gl, isBacteria, arcDegs) {
   // generate number of longitudes and latitudes
   // less divisions for bacteria (optimization purposes)
   let sphereDivs = isBacteria ? 20 : 40;
@@ -210,6 +210,8 @@ function drawSphere(x0, y0, z0, color, radius, gl, isBacteria) {
   let colors = [];
   let indices = [];
   let piDivs = Math.PI / sphereDivs;
+  let arcHeight = arcDegs*(sphereDivs/360);
+  console.log(arcHeight);
 
   // Iterate through each vertical slice of the sphere with latitude
   for (let lat = 0; lat <= sphereDivs; lat++) {
@@ -233,7 +235,7 @@ function drawSphere(x0, y0, z0, color, radius, gl, isBacteria) {
       vertices.push(z);
 
       // Push color of vertex
-      if (!isBacteria && (lat % 4 == 0 || long % 4 == 0)) {
+      if (!isBacteria && (lat % 6 == 0 || long % 6 == 0)) {
         colors.push(0);
         colors.push(0);
         colors.push(0);
@@ -257,6 +259,10 @@ function drawSphere(x0, y0, z0, color, radius, gl, isBacteria) {
       indices.push(v2);
       indices.push(v2 + 1);
       indices.push(v1 + 1);
+      
+    }
+    if (lat >= arcHeight) {
+      break;
     }
   }
   initIndexBuffers(gl, vertices, colors, indices);
