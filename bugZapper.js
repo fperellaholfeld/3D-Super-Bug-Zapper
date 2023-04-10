@@ -158,7 +158,7 @@ function draw(gl, bacteriaAlive) {
 }
 
 // Initialize the vertex buffers for the program
-function initIndexBuffers(gl, vertexInputs, fragmentColor, indexData) {
+function initIndexBuffers(gl, vertexInputs, fragmentColor, indexData, rotMatrix) {
   let vertices = new Float32Array(vertexInputs);
   let colors = new Float32Array(fragmentColor);
   let indices = new Uint16Array(indexData);
@@ -230,12 +230,12 @@ function drawSphere(x0, y0, z0, color, radius, gl, isBacteria, arcDegs=360, rotM
 
       // Push coordinates of currently calculated sphere vertex
       if (isBacteria) {
-       let _rotatedVertices =  function(vertex, rot) {
-        return rot.multiplyVector4(vertex);
+       let _rotatedVertices =  function(vertex, rotMatrix) {
+        return rotMatrix.multiplyVector4(vertex);
        }(new Vector4([x, y, z, 1]), rotMatrix);
-       vertices.push(_rotatedVertices[0]);
-       vertices.push(_rotatedVertices[1]);
-       vertices.push(_rotatedVertices[2]);
+       vertices.push(_rotatedVertices.elements[0]);
+       vertices.push(_rotatedVertices.elements[1]);
+       vertices.push(_rotatedVertices.elements[2]);
       } else {
         vertices.push(x);
         vertices.push(y);
@@ -273,7 +273,8 @@ function drawSphere(x0, y0, z0, color, radius, gl, isBacteria, arcDegs=360, rotM
       break;
     }
   }
-  initIndexBuffers(gl, vertices, colors, indices);
+  
+    initIndexBuffers(gl, vertices, colors, indices);
   gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
   return indices.length;
 }
@@ -349,24 +350,30 @@ class Bacteria {
 
   rotateYAxis(x, y, z) {
     let rotMat = new Matrix4();
-    console.log(rotMat)
+    rotMat.setIdentity;
+    console.log(rotMat.elements)
     console.log(x+' '+y+' '+z+' ')
     let tran = new Matrix4().setTranslate(x, y, z);
     rotMat.multiply(tran);
-    console.log(rotMat)
+    console.log(rotMat.elements)
     let rotX = new Matrix4().setRotate(90, 1, 0, 0);
     rotMat.multiply(rotX);
-    console.log(rotMat)
+    console.log(rotMat.elements)
     let y0Vec = new Vector3([0, 1, 0]);
-    let newYVec = new Vector3([rotMat.elements[4],rotMat.elements[5], rotMat.elements[6]]);
+    let newYVec = new Vector3([rotMat.elements[4], rotMat.elements[5], rotMat.elements[6]]);
+    console.log("angle: " + this.angleBetween(y0Vec,newYVec));
     let axisTheta = this.angleBetween(y0Vec, newYVec)*180/Math.PI;
     let rotZ = new Matrix4().setRotate(axisTheta, 0, 0, 1);
     rotMat.multiply(rotZ);
+    console.log(rotMat.elements)
     return rotMat;
   }
 
   angleBetween(origin, spawn) {
-    return (1/Math.cos(dot(origin, spawn)/(this.mag(origin)*this.mag(spawn))))*180/Math.PI;
+    console.log(origin);
+    console.log(spawn);
+    console.log( "dot " +dot(origin.elements, spawn.elements))
+    return (1/Math.cos(dot(origin.elements, spawn.elements)/(this.mag(origin.elements)*this.mag(spawn.elements))))*180/Math.PI;
   }
 
   mag(vector) {
