@@ -37,19 +37,13 @@ let y_mouse0 = 0;
 
 let drag = false;
 
+
 function main() {
   console.log("Initializing Game...");
   // Retrieve <canvas> element
   let canvas = document.getElementById("webgl");
-
-  // Retrieve game elements
-  let infection = document.getElementById("infection");
-  let score = document.getElementById("playerScore");
-  let winState = document.getElementById("winState");
-
-
   // Get the rendering context for WebGL
-  let gl = canvas.getContext("webgl", { preserveDrawingBuffer: true });
+  let gl = canvas.getContext("webgl", {preserveDrawingBuffer: true});
   if (!gl) {
     console.log("Failed to get the rendering context for WebGL");
     return;
@@ -60,8 +54,9 @@ function main() {
     return;
   }
   gl.enable(gl.DEPTH_TEST);
-  gl.clearColor(1, 0, 0, 1);
+  gl.clearColor(1,0,0,1)
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
 
   // Specify the viewing volume - define the projection matrix
   let proj_matrix = new Matrix4();
@@ -88,7 +83,7 @@ function main() {
   // Begin Frames
   function tick() {
     // check for clicks
-
+    
     canvas.onmouseup = function (e) {
       drag = false;
       click(e, canvas, gl);
@@ -96,7 +91,7 @@ function main() {
     canvas.onmouseleave = function (e) {
       drag = false;
     };
-
+    
     canvas.onmousedown = function (e) {
       x_mouse0 = e.clientX;
       y_mouse0 = e.clientY;
@@ -105,44 +100,43 @@ function main() {
 
     canvas.onmousemove = function (e) {
       if (drag) {
+        
         let x = e.clientX;
         let y = e.clientY;
         let deltaX = x - x_mouse0;
         let deltaY = y - y_mouse0;
         x_mouse0 = x;
         y_mouse0 = y;
-        mo_matrix.multiply(rotMatrix.setRotate(deltaX, 0, 1, 0));
-        mo_matrix.multiply(rotMatrix.setRotate(deltaY, 1, 0, 1));
+        mo_matrix.multiply(rotMatrix.setRotate(deltaX, 1, 0, 0));
+        mo_matrix.multiply(rotMatrix.setRotate(deltaY, 0, 1, 0));
         gl.uniformMatrix4fv(_Mmatrix, false, mo_matrix.elements);
       }
     };
-
+    
     draw(gl, bacteriaAlive);
 
     // If the player score becomes negative, set it to 0
     PLAYER_SCORE = PLAYER_SCORE < 0 ? 0 : PLAYER_SCORE;
 
     // update scores
-    infection.innerHTML =
+    document.getElementById("infection").innerHTML =
       "Infection Level: " + Math.floor(GAME_SCORE);
-    score.innerHTML =
+    document.getElementById("playerScore").innerHTML =
       "Your Score: " + PLAYER_SCORE;
     // Win Conditions
     if (bacteriaAlive.length === 0 && GAME_SCORE < 100) {
-      winState.style.color = "green";
-      winState.innerHTML = "You Win";
+      document.getElementById("winState").style.color = "green";
+      document.getElementById("winState").innerHTML = "You Win";
       return; //end game
     }
     // Lose conditions
     else if (GAME_SCORE >= 100) {
-      winState.style.color = "red";
-      winState.innerHTML = "You Lose";
+      document.getElementById("winState").style.color = "red";
+      document.getElementById("winState").innerHTML = "You Lose";
       return; //end game
     }
-
     requestAnimationFrame(tick, canvas);
   }
-
   tick();
 }
 
@@ -150,15 +144,28 @@ function main() {
 function draw(gl, bacteriaAlive) {
   gl.clearColor(0.0, 0.0, 0.0, 0.0);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-  drawSphere(0, 0, 0, [1, 1, 1], SPHERE_RADIUS, gl, false);
+  drawSphere(
+    (x0 = 0),
+    (y0 = 0),
+    (z0 = 0),
+    (color = [1, 1, 1]),
+    SPHERE_RADIUS,
+    gl,
+    false
+  );
   for (const bacteria of bacteriaAlive) {
-    bacteria.grow();
+      bacteria.grow();
   }
   return 1;
 }
 
 // Initialize the vertex buffers for the program
-function initIndexBuffers(gl, vertexInputs, fragmentColor, indexData) {
+function initIndexBuffers(
+  gl,
+  vertexInputs,
+  fragmentColor,
+  indexData
+) {
   let vertices = new Float32Array(vertexInputs);
   let colors = new Float32Array(fragmentColor);
   let indices = new Uint16Array(indexData);
@@ -209,7 +216,7 @@ function drawSphere(x0, y0, z0, color, radius, gl, isBacteria) {
   let vertices = [];
   let colors = [];
   let indices = [];
-  let piDivs = Math.PI / sphereDivs;
+  let piDivs = (Math.PI / sphereDivs)
 
   // Iterate through each vertical slice of the sphere with latitude
   for (let lat = 0; lat <= sphereDivs; lat++) {
@@ -233,14 +240,14 @@ function drawSphere(x0, y0, z0, color, radius, gl, isBacteria) {
       vertices.push(z);
 
       // Push color of vertex
-      if (!isBacteria && (lat % 4 == 0 || long % 4 == 0)) {
+      if (!isBacteria && (lat % 4 == 0 || long % 4 ==0)) {
         colors.push(0);
         colors.push(0);
         colors.push(0);
       } else {
-        colors.push(color[0]);
-        colors.push(color[1]);
-        colors.push(color[2]);
+        colors.push(color[0])
+        colors.push(color[1])
+        colors.push(color[2])
       }
 
       // Create indices for dividing square segments made by the vertices into triangles
@@ -257,12 +264,14 @@ function drawSphere(x0, y0, z0, color, radius, gl, isBacteria) {
       indices.push(v2);
       indices.push(v2 + 1);
       indices.push(v1 + 1);
+      
     }
   }
-  initIndexBuffers(gl, vertices, colors, indices);
+    initIndexBuffers(gl, vertices, colors, indices)
   gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
   return indices.length;
 }
+
 
 // Last time that this function was called
 let g_last = Date.now();
@@ -291,16 +300,16 @@ function generateBacteria(gl) {
 function click(e, canvas, gl) {
   const rect = canvas.getBoundingClientRect();
   let x = e.clientX - rect.left;
-  let y = rect.bottom - e.clientY;
+  let y = rect.bottom-e.clientY;
   const pixels = new Uint8Array(4);
   gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
-
-  for (let i = 0; i < bacteriaAlive.length; i++) {
+  
+  for (let i =0; i< bacteriaAlive.length; i++) {
     // if a bacteria was clicked on, destroy it and increase the player score
     if (
-      bacteriaAlive[i].color[0] == (pixels[0] / 254).toFixed(2) &&
-      bacteriaAlive[i].color[1] == (pixels[1] / 254).toFixed(2) &&
-      bacteriaAlive[i].color[2] == (pixels[2] / 254).toFixed(2)
+      bacteriaAlive[i].color[0] == (pixels[0]/254).toFixed(2) 
+      && bacteriaAlive[i].color[1] == (pixels[1]/254).toFixed(2)
+      && bacteriaAlive[i].color[2] == (pixels[2]/254).toFixed(2)
     ) {
       PLAYER_SCORE += Math.ceil(10 + 1 / bacteriaAlive[i].radius);
       bacteriaAlive[i].kill(i);
@@ -333,12 +342,12 @@ class Bacteria {
   // set the spawn location along the surface of the sphere for the bacteria
   genSpawnPoint() {
     let spawn = [];
-    this.theta = Math.random() * Math.PI;
-    this.phi = Math.random() * Math.PI * 2;
+    this.theta = Math.random()*Math.PI;
+    this.phi = Math.random()*Math.PI*2;
     // Generate x, y, z values a bit below the surface
-    let x = (SPHERE_RADIUS - 1) * Math.cos(this.phi) * Math.sin(this.theta);
-    let y = (SPHERE_RADIUS - 1) * Math.cos(this.theta);
-    let z = (SPHERE_RADIUS - 1) * Math.sin(this.phi) * Math.sin(this.theta);
+    let x = (SPHERE_RADIUS-1)*Math.cos(this.phi)*Math.sin(this.theta);
+    let y = (SPHERE_RADIUS-1)*Math.cos(this.theta);
+    let z = (SPHERE_RADIUS-1)*Math.sin(this.phi)*Math.sin(this.theta);
     // Push to position array
     spawn.push(x);
     spawn.push(y);
@@ -349,7 +358,7 @@ class Bacteria {
   // increase the size of the bacteria as long as it is still alive, then draw it at its new size
   grow() {
     if (this.alive) {
-      if (this.radius > 10) {
+      if (this.radius > 20) {
         GAME_SCORE += 50;
         console.log(GAME_SCORE);
         PLAYER_SCORE -= 20;
