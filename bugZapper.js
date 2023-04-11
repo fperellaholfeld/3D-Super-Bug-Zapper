@@ -311,7 +311,8 @@ function click(e, canvas, gl) {
       && bacteriaAlive[i].color[1] == (pixels[1]/254).toFixed(2)
       && bacteriaAlive[i].color[2] == (pixels[2]/254).toFixed(2)
     ) {
-      PLAYER_SCORE += Math.ceil(10 + 1 / bacteriaAlive[i].radius);
+      console.log(bacteriaAlive[i].radius)
+      PLAYER_SCORE += Math.ceil(1 / (bacteriaAlive[i].radius-10)*100);
       bacteriaAlive[i].kill(i);
       break;
     }
