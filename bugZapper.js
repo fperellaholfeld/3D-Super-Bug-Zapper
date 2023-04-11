@@ -53,7 +53,9 @@ function main() {
     console.log("Failed to intialize shaders.");
     return;
   }
+
   gl.enable(gl.DEPTH_TEST);
+  gl.depthFunc(gl.LESS);
   gl.clearColor(1,0,0,1)
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
@@ -107,8 +109,8 @@ function main() {
         let deltaY = y - y_mouse0;
         x_mouse0 = x;
         y_mouse0 = y;
-        mo_matrix.multiply(rotMatrix.setRotate(deltaX, 1, 0, 0));
-        mo_matrix.multiply(rotMatrix.setRotate(deltaY, 0, 1, 0));
+        mo_matrix.multiply(rotMatrix.setRotate(deltaX, 0, 1, 0));
+        mo_matrix.multiply(rotMatrix.setRotate(-deltaY, 1, 0, 0));
         gl.uniformMatrix4fv(_Mmatrix, false, mo_matrix.elements);
       }
     };
@@ -211,8 +213,7 @@ function initArrayBuffer(gl, data, num, type, attribute) {
 // Draw the Sphere
 function drawSphere(x0, y0, z0, color, radius, gl, isBacteria) {
   // generate number of longitudes and latitudes
-  // less divisions for bacteria (optimization purposes)
-  let sphereDivs = 60;
+  let sphereDivs = 48;
   let vertices = [];
   let colors = [];
   let indices = [];
@@ -273,18 +274,6 @@ function drawSphere(x0, y0, z0, color, radius, gl, isBacteria) {
 }
 
 
-// Last time that this function was called
-let g_last = Date.now();
-function animate(size) {
-  // Calculate the elapsed time
-  let now = Date.now();
-  let elapsed = Date.now() - g_last;
-  g_last = now;
-  // Update the current size (adjusted by the elapsed time)
-  let newSize = size + (GROWTH_RATE * elapsed) / 1000.0;
-  return newSize;
-}
-
 // Generate a list of between 2 and 10 Bacteria
 function generateBacteria(gl) {
   let bacteriaList = [];
@@ -303,16 +292,18 @@ function click(e, canvas, gl) {
   let y = rect.bottom-e.clientY;
   const pixels = new Uint8Array(4);
   gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+  let R = (pixels[0]/254).toFixed(2) 
+  let G = (pixels[1]/254).toFixed(2) 
+  let B = (pixels[2]/254).toFixed(2) 
   
   for (let i =0; i< bacteriaAlive.length; i++) {
     // if a bacteria was clicked on, destroy it and increase the player score
     if (
-      bacteriaAlive[i].color[0] == (pixels[0]/254).toFixed(2) 
-      && bacteriaAlive[i].color[1] == (pixels[1]/254).toFixed(2)
-      && bacteriaAlive[i].color[2] == (pixels[2]/254).toFixed(2)
+      bacteriaAlive[i].color[0] == R
+      && bacteriaAlive[i].color[1] == G
+      && bacteriaAlive[i].color[2] == B
     ) {
-      console.log(bacteriaAlive[i].radius)
-      PLAYER_SCORE += Math.ceil(1 / (bacteriaAlive[i].radius-10)*100);
+      PLAYER_SCORE += Math.ceil(100 / ((bacteriaAlive[i].radius-10)));
       bacteriaAlive[i].kill(i);
       break;
     }
@@ -361,12 +352,11 @@ class Bacteria {
     if (this.alive) {
       if (this.radius > 15) {
         GAME_SCORE += 50;
-        console.log(GAME_SCORE);
-        PLAYER_SCORE -= 20;
+        PLAYER_SCORE -= 100;
         this.kill(bacteriaAlive.indexOf(this));
-      } else this.radius += GROWTH_RATE;
+      } else {this.radius += GROWTH_RATE};
 
-      drawSphere(
+      let indices = drawSphere(
         this.position[0],
         this.position[1],
         this.position[2],
@@ -375,7 +365,10 @@ class Bacteria {
         this.gl,
         true
       );
+
+      return indices;
     }
+    return 0
   }
 
   // Destroys the bacteria
