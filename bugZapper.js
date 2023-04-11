@@ -203,7 +203,7 @@ function initArrayBuffer(gl, data, num, type, attribute) {
 }
 
 // Draw the Sphere
-function drawSphere(x0, y0, z0, color, radius, gl, isBacteria, arcDegs=360, rotMatrix) {
+function drawSphere(x0, y0, z0, color, radius, gl, isBacteria, arcDegs=360) {
   // generate number of longitudes and latitudes
   // less divisions for bacteria (optimization purposes)
   let sphereDivs = isBacteria ? 20 : 40;
@@ -225,32 +225,41 @@ function drawSphere(x0, y0, z0, color, radius, gl, isBacteria, arcDegs=360, rotM
       let cosTheta = Math.cos(theta);
 
       // Calculate position of vertex in relation to origin point of this sphere.
-      let x = x0 + radius * sinPhi * sinTheta;
-      let y = y0 + radius * cosPhi;
-      let z = z0 + radius * sinPhi * cosTheta;
-
-      // Push coordinates of currently calculated sphere vertex
       if (isBacteria) {
-       let _rotatedVertices =  function(vertex, rotMatrix) {
-        return rotMatrix.multiplyVector4(vertex);
-       }(new Vector4([x, y, z, 1]), rotMatrix);
-       vertices.push(_rotatedVertices.elements[0]);
-       vertices.push(_rotatedVertices.elements[1]);
-       vertices.push(_rotatedVertices.elements[2]);
-       if (flag === true) {
-        flag = false
-         console.log(rotMatrix);
-         console.log(_rotatedVertices.elements)
-         console.log("unrotated vertex: " + x 
-         + ", " + y + ", " + z)
-         console.log("rotated vertex: " + _rotatedVertices.elements[0] 
-         + ", " + _rotatedVertices.elements[1] + ", " + _rotatedVertices.elements[2])
-       }
-      } else {
+        let x = x0 +  (radius/(1+((90 - theta)/180 + (90-phi)/180)) *cosTheta *sinPhi);
+        let y = y0 + (radius/(1+ (90-phi)/90) * cosPhi);
+        let z = z0 + (radius/(1 + ((90 - theta)/180 + (90-phi)/180)) * sinTheta * sinPhi);
         vertices.push(x);
         vertices.push(y);
         vertices.push(z);
-      }
+      } else {
+        let x = x0 + radius * sinPhi * sinTheta;
+        let y = y0 + radius * cosPhi;
+        let z = z0 + radius * sinPhi * cosTheta;
+        vertices.push(x);
+        vertices.push(y);
+        vertices.push(z);
+    }
+      // Push coordinates of currently calculated sphere vertex
+      // if (isBacteria) {
+      //  let _rotatedVertices =  function(vertex, rotMatrix) {
+      //   return rotMatrix.multiplyVector4(vertex);
+      //  }(new Vector4([x, y, z, 1]), rotMatrix);
+      //  vertices.push(_rotatedVertices.elements[0]);
+      //  vertices.push(_rotatedVertices.elements[1]);
+      //  vertices.push(_rotatedVertices.elements[2]);
+      //  if (flag === true) {
+      //   flag = false
+      //    console.log(rotMatrix);
+      //    console.log(_rotatedVertices.elements)
+      //    console.log("unrotated vertex: " + x 
+      //    + ", " + y + ", " + z)
+      //    console.log("rotated vertex: " + _rotatedVertices.elements[0] 
+      //    + ", " + _rotatedVertices.elements[1] + ", " + _rotatedVertices.elements[2])
+      //  }
+      // } else {
+        
+      // }
 
       // Push color of vertex
       if (!isBacteria && (lat % 6 == 0 || long % 6 == 0)) {
@@ -359,28 +368,56 @@ class Bacteria {
   }
 
   rotateYAxis(x, y, z) {
-    let rotMat = new Matrix4().setIdentity();
-    console.log(rotMat.elements)
-    let tran = new Matrix4().setTranslate(x, y, z);
-    rotMat = rotMat.concat(tran);
-    console.log(tran.elements)
-    let rotX = new Matrix4().setRotate(90, 0, 0, 0);
-    console.log(rotX.elements)
-    rotMat = rotMat.concat(rotX);
-    console.log(rotMat.elements)
-    let y0Vec = new Vector3([0, 1, 0]);
-    console.log(rotMat.elements[5])
-    let newYVec = new Vector3([rotMat.elements[4], rotMat.elements[5]*rotMat.elements[7], rotMat.elements[6]]);
-    let axisTheta = this.angleBetween(y0Vec, newYVec);
-    console.log(axisTheta)
-    let rotZ = new Matrix4().setRotate(axisTheta, 0, 0, 1);
-    rotMat = rotMat.concat(rotZ);
-    return rotMat;
+    let matrix = new Matrix4();
+    console.log(matrix.elements)
+
+    let translate0 = new Matrix4().setTranslate(-x, -y, -z);
+    console.log(translate0.elements);
+
+    let x0Vec = new Vector3([1, 0, 0])
+    let xPointVec = new Vector3([x ,0 , 0])
+    let thetaX = this.angleBetween(x0Vec, xPointVec);
+    console.log(thetaX)
+    let rotateX = new Matrix4().setRotate(-thetaX, 0, 0, 1);
+    console.log(rotateX.elements)
+    let z0Vec = new Vector3([0, 0, 1])
+    let zPointVec = new Vector3([0 , 0, z])
+    let thetaZ = this.angleBetween(z0Vec, zPointVec);
+    let rotateZ = new Matrix4().setRotate(-thetaZ, 1, 0, 0);
+    
+
+    let translateBack = new Matrix4().setTranslate(x, y, z);
+
+    matrix.concat(translate0).concat(rotateX).concat(rotateZ).concat(translateBack);
+
+    // let rotMat = new Matrix4().setIdentity();
+    // console.log(rotMat.elements)
+    // let tran = new Matrix4().setTranslate(-x, -y, -z);
+    // rotMat = rotMat.concat(tran);
+    // console.log(tran.elements)
+    // let x0Vec = new Vector3([1, 0, 0]);
+    // let newXVec = new Vector3([rotMat.elements[0], rotMat.elements[1], rotMat.elements[2]]);
+    // let XTheta = this.angleBetween(x0Vec, newXVec);
+    // console.log(XTheta)
+    // let rotX = new Matrix4().setRotate(XTheta, 0, 1, 0);
+    
+    // console.log(rotX.elements)
+    // rotMat = rotMat.concat(rotX);
+    // console.log(rotMat.elements)
+    // let y0Vec = new Vector3([0, 1, 0]);
+    // console.log(rotMat.elements[5])
+    // let newYVec = new Vector3([rotMat.elements[4], rotMat.elements[5], rotMat.elements[6]]);
+    // let ZTheta = this.angleBetween(y0Vec, newYVec);
+    // console.log(ZTheta)
+    // let rotZ = new Matrix4().setRotate(ZTheta, 0, 0, 1);
+    // rotMat = rotMat.concat(rotZ);
+    // tran = new Matrix4().setTranslate(x, y, z);
+    // rotMat = rotMat.concat(tran);
+    return matrix;
   }
 
   angleBetween(origin, spawn) {
-    console.log(dot(origin.elements, spawn.elements))
-    return Math.acos(dot(origin.elements, spawn.elements)/(this.mag(origin.elements)*this.mag(spawn.elements)));
+    return Math.acos(dot(origin.elements, spawn.elements)/(this.mag(origin.elements)*this.mag(spawn.elements)))*(180/Math.PI);
   }
 
   mag(vector) {
@@ -389,18 +426,14 @@ class Bacteria {
 
   // set the spawn location along the surface of the sphere for the bacteria
   genSpawnPoint() {
-    let spawn = [];
-    let theta = Math.random() * Math.PI;
-    let phi = Math.random() * Math.PI * 2;
+    let theta = Math.random() * 2 * Math.PI;
+    let phi = Math.acos(2*Math.random()-1);
     // Generate x, y, z values a bit below the surface
-    let x = SPHERE_RADIUS * Math.sin(theta) * Math.cos(phi);
-    let y = SPHERE_RADIUS * Math.sin(theta) * Math.sin(phi);
-    let z = SPHERE_RADIUS * Math.cos(theta);
+    let x = SPHERE_RADIUS * Math.cos(phi) * Math.sin(theta);
+    let y = SPHERE_RADIUS * Math.cos(theta);
+    let z = SPHERE_RADIUS * Math.sin(phi) * Math.sin(theta);
     // Push to position array
-    spawn.push(x);
-    spawn.push(y);
-    spawn.push(z);
-    return spawn;
+    return [x, y, z];
   }
 
   // increase the size of the bacteria as long as it is still alive, then draw it at its new size
