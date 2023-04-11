@@ -212,7 +212,7 @@ function initArrayBuffer(gl, data, num, type, attribute) {
 function drawSphere(x0, y0, z0, color, radius, gl, isBacteria) {
   // generate number of longitudes and latitudes
   // less divisions for bacteria (optimization purposes)
-  let sphereDivs = 40;
+  let sphereDivs = 60;
   let vertices = [];
   let colors = [];
   let indices = [];
@@ -325,7 +325,7 @@ class Bacteria {
     this.alive = true;
     this.color = this.generateColor();
     this.position = this.genSpawnPoint();
-    this.radius = 20;
+    this.radius = 10;
   }
 
   // Generate the color of the bacteria and its color vertices
@@ -345,9 +345,9 @@ class Bacteria {
     this.theta = Math.random()*Math.PI;
     this.phi = Math.random()*Math.PI*2;
     // Generate x, y, z values a bit below the surface
-    let x = (SPHERE_RADIUS-20)*Math.cos(this.phi)*Math.sin(this.theta);
-    let y = (SPHERE_RADIUS-20)*Math.cos(this.theta);
-    let z = (SPHERE_RADIUS-20)*Math.sin(this.phi)*Math.sin(this.theta);
+    let x = (SPHERE_RADIUS-10)*Math.cos(this.phi)*Math.sin(this.theta);
+    let y = (SPHERE_RADIUS-10)*Math.cos(this.theta);
+    let z = (SPHERE_RADIUS-10)*Math.sin(this.phi)*Math.sin(this.theta);
     // Push to position array
     spawn.push(x);
     spawn.push(y);
@@ -358,7 +358,7 @@ class Bacteria {
   // increase the size of the bacteria as long as it is still alive, then draw it at its new size
   grow() {
     if (this.alive) {
-      if (this.radius > 25) {
+      if (this.radius > 15) {
         GAME_SCORE += 50;
         console.log(GAME_SCORE);
         PLAYER_SCORE -= 20;
